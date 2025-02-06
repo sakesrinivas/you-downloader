@@ -3,6 +3,8 @@ import yt_dlp
 import os
 import base64
 import subprocess
+import requests
+from io import BytesIO
 from moviepy import VideoFileClip
 
 class YouTubeDownloader:
@@ -14,7 +16,7 @@ class YouTubeDownloader:
         try:
             os.makedirs(output_path, exist_ok=True)
             
-            if resolution == 'Highest Available':
+            if resolution == 'best':
                 format_spec = 'bestvideo+bestaudio/best'
             else:
                 format_spec = f'bestvideo[height<={resolution}]+bestaudio/best[height<={resolution}]'
@@ -47,7 +49,12 @@ class YouTubeDownloader:
                 '-i', input_file,
                 '-ss', start_time,
                 '-to', end_time,
-                '-c', 'copy',
+                '-c:v', 'libx264',  # Use H.264 encoding for compatibility
+                '-preset', 'fast',
+                '-crf', '23',  # Controls video quality (lower = better)
+                '-c:a', 'aac',  # Ensure proper audio encoding
+                '-b:a', '192k',
+                #'-c', 'copy',
                 output_path
             ], check=True)
             
@@ -86,76 +93,91 @@ class YouTubeDownloader:
             return None
         
 def set_background(image_path):
-    if not os.path.exists(image_path):
-        st.error(f"Image file not found: {image_path}")
-        return
+    try:
+
+        response=requests.get(image_path)
+        if response.status_code == 200:
+            encoded_string = base64.b64encode(BytesIO(response.content).read()).decode()
     
-    with open(image_path, "rb") as img_file:
-        encoded_string = base64.b64encode(img_file.read()).decode()
-
-    page_bg_img = f"""
-    <style>
-
-    @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Tomorrow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-    html, body, [class*="stTitle"] {{
-        font-family: 'Pacifico', cursive;
     
-    }}
-    h1,h2,h3,h4,h5,h6 {{
-        font-family: 'Pacifico', cursive;
-        text-align: center;
-        text-shadow: -4px -4px 0 black,  
-                  4px -4px 0 black,  
-                 -4px  4px 0 black,  
-                  4px  4px 0 black;
-    }}
-    p, label,div, span{{
-        font-family: 'Pacifico', cursive;
-        font-size: 1rem !important;  /* Increase size */
-        text-shadow: -2px -2px 0 black,  
-                  2px -2px 0 black,  
-                 -2px  2px 0 black,  
-                  2px  2px 0 black;
-    }}
-
-    [data-testid="stMarkdownContainer"] h1 {{
-    font-family: 'Pacifico', cursive !important;
-    font-size: 4.5rem !important;  /* Increase size */
-    text-align: center;
-    color: white;
-    text-shadow: -4px -4px 0 black,  
-                  4px -4px 0 black,  
-                 -4px  4px 0 black,  
-                  4px  4px 0 black; /* Stronger outline for title */
-    }}
+    
+        #"""if not os.path.exists(image_path):
+        #    st.error(f"Image file not found: {image_path}")
+        #    return
+        #
+        #with open(image_path, "rb") as img_file:
+        #    encoded_string = base64.b64encode(img_file.read()).decode()"""
+    
+            page_bg_img = f"""
+            <style>
+        
+            @import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Tomorrow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+            html, body, [class*="stTitle"] {{
+                font-family: 'Pacifico', cursive;
+            
+            }}
+            h1,h2,h3,h4,h5,h6 {{
+                font-family: 'Pacifico', cursive;
+                text-align: center;
+                text-shadow: -4px -4px 0 black,  
+                          4px -4px 0 black,  
+                         -4px  4px 0 black,  
+                          4px  4px 0 black;
+            }}
+            p, label,div, span{{
+                font-family: 'Pacifico', cursive;
+                font-size: 1rem !important;  /* Increase size */
+                text-shadow: -2px -2px 0 black,  
+                          2px -2px 0 black,  
+                         -2px  2px 0 black,  
+                          2px  2px 0 black;
+            }}
+        
+            [data-testid="stMarkdownContainer"] h1 {{
+            font-family: 'Pacifico', cursive !important;
+            font-size: 4.5rem !important;  /* Increase size */
+            text-align: center;
+            color: white;
+            text-shadow: -4px -4px 0 black,  
+                          4px -4px 0 black,  
+                         -4px  4px 0 black,  
+                          4px  4px 0 black; /* Stronger outline for title */
+            }}
+            
+        
+            [data-testid="stAppViewContainer"] {{
+                background-image: url("data:image/jpg;base64,{encoded_string}");
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+            }}
+            [data-testid="stHeader"] {{
+                background: rgba(0,0,0,0);
+            }}
+        
+            [data-testid="stSidebar"] {{
+            background: rgba(255, 255, 255, 0.1); /* Light transparent background */
+            backdrop-filter: blur(10px); /* Blur effect for glassmorphism */
+            -webkit-backdrop-filter: blur(10px); /* For Safari support */
+            border-radius: 10px; /* Slight rounded edges */
+            padding: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+            }}
+        
+            
+            </style>
+            """
+            st.markdown(page_bg_img, unsafe_allow_html=True)
+        else:
+            st.warning("Image not found")
     
 
-    [data-testid="stAppViewContainer"] {{
-        background-image: url("data:image/jpg;base64,{encoded_string}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-    }}
-    [data-testid="stHeader"] {{
-        background: rgba(0,0,0,0);
-    }}
-
-    [data-testid="stSidebar"] {{
-    background: rgba(255, 255, 255, 0.1); /* Light transparent background */
-    backdrop-filter: blur(10px); /* Blur effect for glassmorphism */
-    -webkit-backdrop-filter: blur(10px); /* For Safari support */
-    border-radius: 10px; /* Slight rounded edges */
-    padding: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
-    }}
-
-    
-    </style>
-    """
-    st.markdown(page_bg_img, unsafe_allow_html=True)
+    except Exception as e:
+        st.warning(f"Error setting background: {e}")
 
 def main():
-    image_path = r"D:\7-CAI-1\Youtube Video Downloader App\background.png"
+    image_path = "https://raw.githubusercontent.com/sakesrinivas/you-downloader/refs/heads/main/background.png"
+    set_background(image_path)
     st.title("YouDownloader !")
     
     st.sidebar.header("Download Options")
@@ -177,10 +199,10 @@ def main():
     if download_option == "Full Video":
         resolution = st.sidebar.selectbox(
             "Select Resolution", 
-            ["Highest Available", "1080p", "720p", "480p", "360p"]
+            ["best", "1080p", "720p", "480p", "360p"]
         )
     else:
-        resolution = "Highest Available"
+        resolution = "best"
     
     if st.button("Download"):
         if video_url:
@@ -199,19 +221,19 @@ def main():
                         video_url, 
                         download_path
                     )
-                    """if video_file:
-                        cropped_video = os.path.join(
-                            download_path, 
-                            f"cropped_{os.path.basename(video_file)}"
-                        )
-                        result = YouTubeDownloader.crop_video(
-                            video_file, 
-                            start_time, 
-                            end_time, 
-                            cropped_video
-                        )
-                        if result:
-                            st.success(f"Video cropped: {result}")"""
+                    #"""if video_file:
+                    #    cropped_video = os.path.join(
+                    #        download_path, 
+                    #        f"cropped_{os.path.basename(video_file)}"
+                    #    )
+                    #    result = YouTubeDownloader.crop_video(
+                    #        video_file, 
+                    #        start_time, 
+                    #        end_time, 
+                    #        cropped_video
+                    #    )
+                    #    if result:
+                    #        st.success(f"Video cropped: {result}")"""
                     if video_file:
                         cropped_video = os.path.join(
                             download_path, 
@@ -253,7 +275,6 @@ def main():
                                 pass
         else:
             st.warning("Please enter a YouTube URL")
-    set_background(image_path)
 
 if __name__ == "__main__":
     main()
