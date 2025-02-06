@@ -1,8 +1,4 @@
 streamlit
 yt_dlp
-os
-base64
-subprocess
 requests
-io
 moviepy
